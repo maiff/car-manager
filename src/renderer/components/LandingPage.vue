@@ -1,7 +1,12 @@
 <template>
   <div id="wrapper">
     <!-- <img id="logo" src="~@/assets/logo.png" alt="electron-vue"> -->
-    <h1>变电站接地线智能管理装置</h1>
+    <h1 class="htitle" @click="setRange()">变电站接地线智能管理装置</h1>
+    <!-- <div>
+      35kV:<input type="text" v-model="min35"/> <input type="text" v-model="max35"/> <br>
+      220kV:<input type="text" /> <input type="text" /> <br>
+      500kV:<input type="text" /> <input type="text" /> <br>
+    </div> -->
     <main>
       <div class="left-side">
         <span class="title">
@@ -10,6 +15,7 @@
         <system-information :status="status" :distance="distance"
           :lat="lat" :lng="lng"
         ></system-information>
+        <!-- <button>设置范围</button> -->
       </div>
 
       <div class="right-side">
@@ -31,7 +37,10 @@
 
 <script>
   import SystemInformation from './LandingPage/SystemInformation'
+
+  const { remote } = require('electron');
   import axios from 'axios'
+  import fs from 'fs'
   var request = require('request');
   var request = request.defaults({jar: true})
   export default {
@@ -44,7 +53,23 @@
         distance: '',
         lat: '',
         lng: '',
-        i: 0
+        i: 0,
+        file: '',
+        minlat35: 30.83841,
+        maxlat35: 30.83905,
+        minlng35: 108.286491,
+        maxlng35: 108.28908,
+
+        minlat220: 30.837,
+        maxlat220: 30.83839,
+        minlng220: 108.28651,
+        maxlng220: 108.28931,
+
+        minlat500: 30.83906 ,
+        maxlat500: 30.84117,
+        minlng500: 108.28612,
+        maxlng500: 108.28965,
+
       }
     },
     mounted(){
@@ -59,6 +84,16 @@
         this.get_location()
 
       },10000)
+      // let file = process.cwd() + '/config.json' // 文件路径
+      // // console.log(file)
+      // this.file = file
+      // fs.readFile(file, 'utf-8', function (err, data) {
+      //   if (err) {
+      //     console.log(err)// eslint-disable-line
+      //   } else {
+      //     console.log(data)// eslint-disable-line
+      //   }
+      // })
     },
     methods: {
       open (link) {
@@ -80,10 +115,40 @@
         request(options, function (error, response, body) {
           if (error) throw new Error(error);
           fn && fn()
-          console.log(body);
+          // console.log(body);
         });
 
       },
+    async setRange(){
+      const result = await remote.dialog.showOpenDialog({
+        properties: ['openFile'],
+      });
+      console.log(result)
+      let file = result[0]
+      fs.readFile(file, 'utf-8',  (err, data) => {
+        if (err) {
+          console.log(err)// eslint-disable-line
+        } else {
+          console.log(data)// eslint-disable-line
+          let range = JSON.parse(data)
+          this.minlat35= range.minlat35
+          this.maxlat35= range.maxlat35
+          this.minlng35= range.minlng35
+          this.maxlng35= range.maxlng35
+
+          this.minlat220= range.minlat220
+          this.maxlat220= range.maxlat220
+          this.minlng220= range.minlng220
+          this.maxlng220= range.maxlng220
+
+          this.minlat500= range.minlat500
+          this.maxlat500= range.maxlat500
+          this.minlng500= range.minlng500
+          this.maxlng500= range.maxlng500
+        }
+      })
+
+    },
     get_location(){
         var options = { method: 'POST',
         url: 'http://www.gps902.net/Ajax/DevicesAjax.asmx/GetDevicesByUserID',
@@ -97,18 +162,18 @@
         if (error) throw new Error(error);
         var info = JSON.parse(body)
         info = eval(info['d'])
-        console.log(info, typeof(info));
+        // console.log(info, typeof(info));
         info = info[0]
         this.status = info['status']
         this.distance = info['distance']
         this.lat = parseFloat(info['baiduLat'])
         this.lng = parseFloat(info['baiduLng'])
-        console.log(this.lat, this.lng, 30.83941 <this.lat )
-        if (30.83941 < this.lat && this.lat <30.84117 && 108.28612 < this.lng && this.lng < 108.28965){
+        // console.log(this.lat, this.lng, 30.83941 <this.lat )
+        if (this.minlat500 <= this.lat && this.lat <=this.maxlat500 && this.minlng500 <= this.lng && this.lng <= this.maxlng500){
           this.i = 3
-        } else if(30.83910 < this.lat && this.lat < 30.83937 && 108.286491 < this.lng && this.lng < 108.28908){
+        } else if(this.minlat35 <= this.lat && this.lat <= this.maxlat35 && this.minlng35 <= this.lng && this.lng <= this.maxlng35){
           this.i = 2
-        }else if(30.83842 < this.lat && this.lat < 30.83906 && 108.28651 < this.lng && this.lng < 108.28931){
+        }else if(this.minlat220 <= this.lat && this.lat <= this.maxlat220 && this.minlng220 <= this.lng && this.lng <= this.maxlng220){
           this.i = 1
         } else {
           this.i = 0 
@@ -129,7 +194,9 @@
   }
 
   body { font-family: 'Source Sans Pro', sans-serif; }
-
+  .htitle{
+    cursor: pointer;
+  }
   #wrapper {
     background:
       radial-gradient(
@@ -183,11 +250,11 @@
     margin-bottom: 10px;
   }
 
-  .doc button {
+  button {
     font-size: .8em;
     cursor: pointer;
     outline: none;
-    padding: 0.75em 2em;
+    padding: 0.75em 1.5em;
     border-radius: 2em;
     display: inline-block;
     color: #fff;
